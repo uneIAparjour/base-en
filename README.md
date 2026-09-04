@@ -39,9 +39,13 @@ Same 33 categories as the French base, translated: access, application, archives
 
 ## Key figures
 
-- **1277 tools** listed (as of 04/09/2026)
+- **1278 tools** listed (as of 04/09/2026)
 - **33 categories**
 - Range: 16/02/2023 → 04/09/2026
+
+## Used by
+
+- **[uneIAparjour/recherche-outils](https://github.com/uneIAparjour/recherche-outils)** — the site's fullscreen search overlay reads this CSV directly (live, client-side) to power search and category filtering on the English pages. The French overlay reads the original `base` CSV the same way.
 
 ## Also available on
 
