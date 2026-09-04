@@ -1,0 +1,169 @@
+name: nightly-ods-update
+on:
+  schedule:
+    # 08:00 UTC — 2h after the translation pipeline's daily translate+publish
+    # cron (uneiaparjour-en-translation, 06:00 UTC), so newly-published EN
+    # articles are already live and in the /en/feed/ RSS by the time this runs.
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install feedparser odfpy pandas
+      - name: Update ODS
+        id: update_ods
+        run: |
+          python update_ods.py
+          if git status --porcelain base-uneiaparjour-en.ods | grep -q .; then
+            echo "modified=true" >> $GITHUB_OUTPUT
+          else
+            echo "modified=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Generate CSV
+        if: steps.update_ods.outputs.modified == 'true'
+        run: |
+          python3 << 'EOF'
+          import csv
+          from odf.opendocument import load
+          from odf.table import Table, TableRow, TableCell
+          from odf.text import P
+
+          FOCUS_VALUES = {'focus lettre', 'focus-lettre', 'focus'}
+
+          def get_cell_text(cell):
+              ps = cell.getElementsByType(P)
+              if not ps:
+                  return ''
+              p = ps[0]
+              text = ''
+              for node in p.childNodes:
+                  if hasattr(node, 'data'):
+                      text += node.data
+                  elif hasattr(node, 'childNodes'):
+                      for child in node.childNodes:
+                          if hasattr(child, 'data'):
+                              text += child.data
+              return text
+
+          def expand_row(row):
+              cells = row.getElementsByType(TableCell)
+              result = []
+              for cell in cells:
+                  repeat = int(cell.getAttribute('numbercolumnsrepeated') or 1)
+                  text = get_cell_text(cell)
+                  result.extend([text] * repeat)
+              return result
+
+          doc = load('base-uneiaparjour-en.ods')
+          sheets = doc.spreadsheet.getElementsByType(Table)
+          base_sheet = next(s for s in sheets if s.getAttribute('name') == 'Base')
+          rows = base_sheet.getElementsByType(TableRow)
+
+          header = expand_row(rows[0])
+          while header and not header[-1].strip():
+              header.pop()
+
+          cat_indices = [i for i, h in enumerate(header) if 'ategor' in h]
+
+          output_rows = []
+          skipped_empty = 0
+          skipped_focus = 0
+          for row in rows[1:]:
+              values = expand_row(row)
+              if not any(v.strip() for v in values):
+                  skipped_empty += 1
+                  continue
+              cats = [values[i].strip().lower() for i in cat_indices if i < len(values)]
+              if any(c in FOCUS_VALUES for c in cats):
+                  skipped_focus += 1
+                  continue
+              output_rows.append(values)
+
+          print(f"1. Rows read: {len(rows) - 1}")
+          print(f"2. Empty rows skipped: {skipped_empty}")
+          print(f"3. Focus articles excluded: {skipped_focus}")
+          print(f"4. Final CSV: {len(output_rows)} rows")
+          print(f"5. Columns: {len(header)} ({header})")
+
+          n = len(header)
+          with open('base-uneiaparjour-en.csv', 'w', newline='', encoding='utf-8') as f:
+              writer = csv.writer(f)
+              writer.writerow(header[:n])
+              for r in output_rows:
+                  padded = r + [''] * (n - len(r))
+                  writer.writerow(padded[:n])
+
+          print(f"CSV written: {len(output_rows)} rows")
+          titre_idx = next((i for i, h in enumerate(header) if h.lower() == 'title'), 0)
+          date_idx = next((i for i, h in enumerate(header) if 'date' in h.lower()), n-1)
+          print("First rows:")
+          for r in output_rows[:3]:
+              print(f"  {r[titre_idx]} — {r[date_idx]}")
+          print("Last rows:")
+          for r in output_rows[-3:]:
+              print(f"  {r[titre_idx]} — {r[date_idx]}")
+          EOF
+      - name: Update READMEs
+        if: steps.update_ods.outputs.modified == 'true'
+        run: |
+          python3 << 'EOF'
+          import re
+          import pandas as pd
+          from datetime import datetime, timezone
+          nb = len(pd.read_csv('base-uneiaparjour-en.csv'))
+          date = datetime.now(timezone.utc).strftime('%d/%m/%Y')
+          for fname, patterns in {
+              'README.md': [
+                  (r'\*\*\d[\d ]* tools\*\* listed \(as of [^\)]+\)', f'**{nb} tools** listed (as of {date})'),
+                  (r'Range: [\d/]+ → [\d/]+', f'Range: 16/02/2023 → {date}'),
+              ],
+              'huggingface-README.md': [
+                  (r'\*\*\d[\d ]* tools\*\* \(as of [^\)]+\)', f'**{nb} tools** (as of {date})'),
+                  (r'\*\*Period\*\* : .+', f'**Period** : February 16, 2023 → {date}'),
+                  (r'uneIAparjour\.fr English dataset as of [\d/]+, Bertrand', f'uneIAparjour.fr English dataset as of {date}, Bertrand'),
+              ],
+              'agent.md': [
+                  (r'\*\*\d[\d ]* tools\*\* referenced \(as of [^\)]+\)', f'**{nb} tools** referenced (as of {date})'),
+              ],
+          }.items():
+              content = open(fname, encoding='utf-8').read()
+              for pattern, replacement in patterns:
+                  content = re.sub(pattern, replacement, content)
+              open(fname, 'w', encoding='utf-8').write(content)
+              print(f'{fname} updated: {nb} tools as of {date}')
+          EOF
+      - name: Commit
+        if: steps.update_ods.outputs.modified == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add base-uneiaparjour-en.ods base-uneiaparjour-en.csv README.md huggingface-README.md agent.md
+          git diff --cached --quiet || git commit -m "nightly update $(date -u +'%d/%m/%Y')"
+          git push
+      - name: Sync Hugging Face
+        if: steps.update_ods.outputs.modified == 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git lfs install
+          git clone https://huggingface.co/datasets/uneIAparjour/base-en hf-dataset
+          cd hf-dataset
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://uneIAparjour:${HF_TOKEN}@huggingface.co/datasets/uneIAparjour/base-en
+          cp ../base-uneiaparjour-en.csv .
+          cp ../base-uneiaparjour-en.ods .
+          cp ../huggingface-README.md README.md
+          git add -A
+          git diff --cached --quiet || git commit -m "nightly update $(date -u +'%d/%m/%Y')"
+          git push
