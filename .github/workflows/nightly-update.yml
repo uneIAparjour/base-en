@@ -6,6 +6,11 @@ on:
     # articles are already live and in the /en/feed/ RSS by the time this runs.
     - cron: "0 8 * * *"
   workflow_dispatch:
+    inputs:
+      force_sync:
+        description: 'Run CSV/README/commit/HF-sync steps even if update_ods.py found nothing new (for testing the sync path itself)'
+        type: boolean
+        default: false
 permissions:
   contents: write
 jobs:
@@ -25,6 +30,8 @@ jobs:
         run: |
           python update_ods.py
           if git status --porcelain base-uneiaparjour-en.ods | grep -q .; then
+            echo "modified=true" >> $GITHUB_OUTPUT
+          elif [ "${{ inputs.force_sync }}" = "true" ]; then
             echo "modified=true" >> $GITHUB_OUTPUT
           else
             echo "modified=false" >> $GITHUB_OUTPUT
