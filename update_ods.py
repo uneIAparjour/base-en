@@ -257,7 +257,18 @@ def main():
         else:
             skipped_focus += 1
 
-    for row in reversed(rows_to_insert):
+    # rows_to_insert is already newest-first (built by iterating new_entries,
+    # itself sorted descending above) — inserting in THAT order, always right
+    # before the same fixed anchor, correctly stacks them newest-to-oldest
+    # immediately above the anchor (insertBefore(A, X) then insertBefore(B, X)
+    # yields [A, B, X], not [B, A, X]). A previous version of this loop
+    # reversed the list first, which silently scrambled any run that inserted
+    # more than one row at once — invisible on the FR base (1 new row/day,
+    # where reversing a single-element list is a no-op) but produced a
+    # completely out-of-order dataset the one time this EN base did its
+    # initial bulk import of 1277 rows in a single run. Verified with a
+    # standalone repro before applying this fix — see project memory.
+    for row in rows_to_insert:
         base_sheet.insertBefore(row, insert_before_row)
         inserted += 1
 
