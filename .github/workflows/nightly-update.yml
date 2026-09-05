@@ -161,6 +161,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://uneIAparjour:${HF_TOKEN}@huggingface.co/datasets/uneIAparjour/base-en
+          # HF rejects a plain (non-LFS) binary blob push — the FR dataset's
+          # .gitattributes got this rule from a one-time manual web-UI upload
+          # at creation time; this dataset was created empty via "Create
+          # Dataset" with no upload, so it never got one. Track explicitly
+          # every run (idempotent no-op once .gitattributes already has it).
+          git lfs track "base-uneiaparjour-en.ods"
           cp ../base-uneiaparjour-en.csv .
           cp ../base-uneiaparjour-en.ods .
           cp ../huggingface-README.md README.md
