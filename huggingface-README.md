@@ -49,7 +49,7 @@ Every day, a new free or freemium generative AI tool is tested, described and ca
 
 ## Content
 
-- **1279 tools** (as of 06/09/2026)
+- **1293 tools** (as of 06/09/2026)
 - **33 categories**: chatbot, images, text, video, music, education, open source…
 - **Period** : February 16, 2023 → 06/09/2026
 - **Language**: English (translated)
