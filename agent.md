@@ -6,7 +6,7 @@ This repository contains the English dataset for uneiaparjour.fr: a generative A
 
 This dataset is **derived, not authoritative** — the French base ([`uneIAparjour/base`](https://github.com/uneIAparjour/base)) is the source of truth for which tools exist and their original data. This repository only mirrors whatever has already been translated and published in English at the time it last ran.
 
-**1297 tools** referenced (as of 08/09/2026).
+**1298 tools** referenced (as of 09/09/2026).
 
 ## File structure
 

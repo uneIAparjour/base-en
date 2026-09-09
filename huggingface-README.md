@@ -49,9 +49,9 @@ Every day, a new free or freemium generative AI tool is tested, described and ca
 
 ## Content
 
-- **1297 tools** (as of 08/09/2026)
+- **1298 tools** (as of 09/09/2026)
 - **33 categories**: chatbot, images, text, video, music, education, open source…
-- **Period** : February 16, 2023 → 08/09/2026
+- **Period** : February 16, 2023 → 09/09/2026
 - **Language**: English (translated)
 - **Coverage**: not 100% of the French base yet — only tools with a published English translation appear here
 
@@ -90,4 +90,4 @@ French dataset: [uneIAparjour/base](https://huggingface.co/datasets/uneIAparjour
 
 License: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
-> uneIAparjour.fr English dataset as of 08/09/2026, Bertrand Formet, CC BY 4.0 license.
+> uneIAparjour.fr English dataset as of 09/09/2026, Bertrand Formet, CC BY 4.0 license.
