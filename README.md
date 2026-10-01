@@ -39,9 +39,9 @@ Same 33 categories as the French base, translated: access, application, archives
 
 ## Key figures
 
-- **1319 tools** listed (as of 30/09/2026)
+- **1320 tools** listed (as of 01/10/2026)
 - **33 categories**
-- Range: 16/02/2023 → 30/09/2026
+- Range: 16/02/2023 → 01/10/2026
 
 ## Used by
 
